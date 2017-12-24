@@ -1,0 +1,339 @@
+---
+title: "Scraping our way through the Web"
+author: "Andrew Tunggal"
+date: "November 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+A lot of useful information is available on the internet - stores of data are at our fingertips that we can use for our own analytical purposes. It is interesting how much we can obtain for ourselves, and even that we have ways in this day and age to scrape these data from the web. In this post, we will look to perform this procedure on multiple links to showcase the process of obtaining data from the web. Data wrangling can seem to be somewhat of a menial process, but it is very rewarding when you get to the point of actually presenting information.
+
+## Necessary Packages
+
+There are some useful packages that help out a lot with the process of web scraping. 
+
+```{r}
+# Loading the rvest package
+library('rvest')
+
+# Loading magrittr package
+library('magrittr')
+
+# Loading XML package
+library('XML')
+
+# Loading stringr package
+library('stringr')
+```
+
+## Web-Scrapping
+
+For the actual process of webscraping, we go to a website that has data that we desire to use. I chose serenesforest.net, which is a resource for data regarding the game Fire Emblem. 
+
+```{r}
+#Specifying the url for desired website to be scrapped
+grow_url <- 'https://serenesforest.net/path-of-radiance/characters/growth-rates/'
+base_url <- "https://serenesforest.net/path-of-radiance/characters/base-stats/"
+
+#Reading the HTML code from the website
+webpage_grow <- read_html(grow_url)
+webpage_base <- read_html(base_url)
+webpage_grow
+```
+
+
+So we are able to to read these websites as html or XML files. However, you may get to the link with the data and even be able to read it, but you don't necessarily know how to grab just the table. If you can't grab the table, you won't be able to scrape the part that you want. A useful tool to use to help you is the [selector gadget](http://selectorgadget.com/). Using this tool, you can find the aspects of the file that you desire to grab. It will look something like this:
+
+![](C:/Users/Andrew/Desktop/Post 2 Stuff/Web_scraping.jpg)
+
+Looking at this, when you hover over the table, you will find the parts that you want to add to the 
+You can use the function "html_nodes" and "html_text"", such as below to obtain the information from the tables on the webpages:
+
+
+```{r}
+# obtains column-names
+grow_cols <- webpage_grow %>%
+  html_nodes("th") %>%
+  html_text()
+#obtains table data
+grow_stats <- webpage_grow %>%
+  html_nodes("td") %>%
+  html_text()
+
+# obtains column-names
+base_cols <- webpage_base %>%
+  html_nodes("th") %>%
+  html_text()
+#obtains table data
+base_stats <- webpage_base %>%
+  html_nodes("td") %>%
+  html_text()
+```
+
+
+## Turning Obtained Information into Usable Data Tables
+
+However, as you may notice, when obtaining this information, we get all the information in one list, which is not necessarily what we want - we want the information sorted into a table. This is may be the case on some websites such as this. Thus, it may require some manual formatting of the data. In the process of scraping data into formats that you desire, sometimes it takes some hard-coding to get what you want. However, when you format it in a organized way, it makes it much easier for your future use.
+
+We will start with the data for growth. If you look at the original link, you will notice the number of columns that there are. We want to as-accurately represent the original table as possible. So we will make vectors containing each corresponding value of that column, and piece it together in our own data frame.
+
+
+```{r}
+# obtaining table for growth rates
+
+g_char_names <- grow_stats[seq(1,length(grow_stats),9)]
+g_hp <- grow_stats[seq(2,length(grow_stats),9)]
+g_str <- grow_stats[seq(3,length(grow_stats),9)]
+g_mag <- grow_stats[seq(4,length(grow_stats),9)]
+g_skill <- grow_stats[seq(5,length(grow_stats),9)]
+g_spd <- grow_stats[seq(6,length(grow_stats),9)]
+g_lck <- grow_stats[seq(7,length(grow_stats),9)]
+g_def <- grow_stats[seq(8,length(grow_stats),9)]
+g_res <- grow_stats[seq(9,length(grow_stats),9)]
+
+growth <- data.frame("Name" = g_char_names, "HP" = g_hp, "Str" = g_str, 
+                     "Mag" = g_mag, "Skill" = g_skill, "Spd" = g_spd, 
+                     "Luck" = g_lck, "Def" = g_def, "Res" = g_res)
+```
+
+In the end, it will look like orderly and useable, like this:
+
+```{r}
+# shows formatted table for growth rates
+growth
+```
+
+## Practice makes Perfect
+
+We will repeat this for our base stats information:
+
+```{r}
+# obtaining table for base stats
+
+b_char_names <- base_stats[seq(1,length(base_stats),14)]
+b_class <- base_stats[seq(2, length(base_stats), 14)]
+b_lvl <- base_stats[seq(3,length(base_stats),14)]
+b_hp <- base_stats[seq(4,length(base_stats),14)]
+b_str <- base_stats[seq(5,length(base_stats),14)]
+b_mag <- base_stats[seq(6,length(base_stats),14)]
+b_skill <- base_stats[seq(7,length(base_stats),14)]
+b_spd <- base_stats[seq(8,length(base_stats),14)]
+b_lck <- base_stats[seq(9,length(base_stats),14)]
+b_def <- base_stats[seq(10,length(base_stats),14)]
+b_res <- base_stats[seq(11,length(base_stats),14)]
+
+base <- data.frame("Name" = b_char_names, "Class" = b_class, "Level" = b_lvl,
+                   "HP" = b_hp, "Str" = b_str, "Mag" = b_mag,
+                   "Skill" = b_skill, "Spd" = b_spd, 
+                   "Luck" = b_lck, "Def" = b_def, 
+                   "Res" = b_res, stringsAsFactors = FALSE)
+```
+
+We have the base stats and growth rates. But something that is an aspect of this game as well is the promotion bonuses that a character receives upon changing classes. Each class has certain stat boosts upon promotion, so these will be taken into account as well. Luckily, this website has this information as well. So we will perform a similar task as was done before for the promotion data:
+
+```{r}
+#Specifying the url for desired website to be scrapped
+prom_url <- 'https://serenesforest.net/path-of-radiance/classes/promotion-gains/'
+
+#Reading the HTML code from the website
+webpage_prom <- read_html(prom_url)
+
+prom_stats <- webpage_prom %>%
+  html_nodes("td") %>%
+  html_text()
+
+prom_stats <- gsub("+,", "", prom_stats)
+
+# obtaining table for promotion stats
+p_class <- prom_stats[seq(1,length(prom_stats),12)]
+p_prom <- prom_stats[seq(2, length(prom_stats), 12)]
+p_hp <- prom_stats[seq(3,length(prom_stats),12)]
+p_str <- prom_stats[seq(4,length(prom_stats),12)]
+p_mag <- prom_stats[seq(5,length(prom_stats),12)]
+p_skill <- prom_stats[seq(6,length(prom_stats),12)]
+p_spd <- prom_stats[seq(7,length(prom_stats),12)]
+p_lck <- numeric(length(prom_stats) / 12)
+p_def <- prom_stats[seq(8,length(prom_stats),12)]
+p_res <- prom_stats[seq(9,length(prom_stats),12)]
+
+prom <- data.frame("Class" = p_class, "Promotion" = p_prom, "HP" = p_hp, 
+                   "Str" = p_str, "Mag" = p_mag, "Skill" = p_skill, 
+                   "Spd" = p_spd, "Luck" = p_lck, "Def" = p_def, "Res" = p_res, 
+                   stringsAsFactors = FALSE)
+```
+
+If you look at the resulting table, you will see that there are "+" signs on there. It is fine if you just want to look at the table of information. But if you desire to add up these values, perhaps if you want to simulate final stats, you will want this to be as clean as possible. A way to do this by using the "sapply" function to turn these specific columns into integers:
+
+```{r}
+prom[, c(3:10)] <- sapply(prom[, c(3:10)], as.integer)
+```
+
+Some characters have gender-specific max stats and promotion gains. An aspect of data wrangling is fixing up the data so that it is easier to work with. The more your work with the data to wrangle it and organize it so that it is in a easily-used format, the less work you will need to do when you're trying to start using the data.
+
+```{r}
+# adding gender add-ons to class names for certain characters
+
+base[base$Name == "Geoffrey", ]$Class <- 
+  paste(base[base$Name == "Geoffrey", ]$Class, "(M)")
+base[base$Name == "Stefan", ]$Class <- 
+  paste(base[base$Name == "Stefan", ]$Class, "(M)")
+base[base$Name == "Haar", ]$Class <- 
+  paste(base[base$Name == "Haar", ]$Class, "(M)")
+base[base$Name == "Jill", ]$Class <- 
+  paste(base[base$Name == "Jill", ]$Class, "(F)")
+base[base$Name == "Mia", ]$Class <- 
+  paste(base[base$Name == "Mia", ]$Class, "(F)")
+base[base$Name == "Zihark", ]$Class <- 
+  paste(base[base$Name == "Zihark", ]$Class, "(M)")
+base[base$Name == "Titania", ]$Class <- 
+  paste(base[base$Name == "Titania", ]$Class, "(F)")
+base[base$Name == "Lucia", ]$Class <- 
+  paste(base[base$Name == "Lucia", ]$Class, "(F)")
+```
+
+```{r}
+# more addition of gender add-ons, separated to make it easier to read
+base[base$Class == "Lance Knight", ]$Class <- paste("Lance Knight", "(M)")
+base[base$Class == "Sword Knight", ]$Class <- paste("Sword Knight", "(M)")
+base[base$Class == "Axe Knight", ]$Class <- paste("Axe Knight", "(M)")
+base[base$Class == "Bow Knight", ]$Class <- paste("Bow Knight", "(F)")
+base[base$Name == "Naesala", ]$Class <- "Bird tribe (Naesala)"
+base[base$Name == "Tibarn", ]$Class <- "Bird tribe (Tibarn)"
+base[base$Name == "Ena", ]$Class <- "Dragon tribe (Red F)"
+base[base$Name == "Lethe", ]$Class <- "Beast tribe (Cat F)"
+base[base$Name == "Ranulf", ]$Class <- "Beast tribe (Cat M)"
+base[base$Name == "Reyson", ]$Class <- "Bird tribe (Heron M)"
+base[base$Name == "Leanne", ]$Class <- "Bird tribe (Heron F)"
+
+```
+
+```{r}
+# meanwhile, here, we remove the gender add-ons for some classes
+prom[prom$Class == "Soldier (F)", ]$Class <- "Soldier"
+prom[prom$Promotion == "Halberdier (F)", ]$Promotion <- "Halberdier"
+prom[prom$Promotion == "Bishop (M)", ]$Promotion <- "Bishop"
+prom <- prom[!prom$Class == "Mage (F)", ]
+prom[prom$Class == "Mage (M)", ]$Class <- "Mage"
+prom[prom$Promotion == "Sage (M)", ]$Promotion <- "Sage"
+```
+
+
+On the note of promotions, you might notice that some characters have access to promotions, while some do not. This may be something that you could desire to take into account in whatever analysis/simulation that you perform on this information. Thus, we will add a column to indicate whether a character has acccess to a promotion or not (and thus, promotion bonuses).
+
+```{r}
+# adds logical column indicating whether that character can be promoted or not
+base$Prom <- (base$Class %in% prom$Class)
+```
+
+But an interesting aspect of this game is that Sothe cannot promote. So you will need to account for that. Also, two characters, Sephiran and Leanne, do not have growth rates that you can use so having their base stats is somewhat irrelevant for this:
+
+```{r}
+# removal of some characters/classes/promotions that don't exist
+base[base$Name == "Sothe", ]$Prom <- FALSE
+base <- base[!base$Name == "Sephiran", ]
+base <- base[!base$Name == "Leanne", ]
+growth <- growth[!growth$Name == "Sothe (Blossom *1)", ]
+growth <- growth[!growth$Name == "Sothe (Blossom *2)", ]
+```
+
+
+The table with base stats will now look like this:
+
+
+```{r}
+# shows data table for base stats
+base
+```
+
+Something that you may notice is that most RPG characters have maximum stats. This means that no matter the growth rates of a character, you cannot exceed those maximum stats. This website also provides information on the maximum stats of each class of units. We will perform this process again. Hopefully you've gotten the hang of this, so it shouldn't be too difficult for you:
+
+
+```{r}
+#Specifying the url for desired website to be scrapped
+max_url <- 'https://serenesforest.net/path-of-radiance/classes/maximum-stats/'
+
+#Reading the HTML code from the website
+webpage_max <- read_html(max_url)
+
+max_stats <- webpage_max %>%
+  html_nodes("td") %>%
+  html_text()
+
+# obtaining data table for maximum stats
+m_class <- max_stats[seq(1,length(max_stats),9)]
+m_hp <- max_stats[seq(2,length(max_stats),9)]
+m_str <- max_stats[seq(3,length(max_stats),9)]
+m_mag <- max_stats[seq(4,length(max_stats),9)]
+m_skill <- max_stats[seq(5,length(max_stats),9)]
+m_spd <- max_stats[seq(6,length(max_stats),9)]
+m_lck <- max_stats[seq(7,length(max_stats),9)]
+m_def <- max_stats[seq(8,length(max_stats),9)]
+m_res <- max_stats[seq(9,length(max_stats),9)]
+
+max <- data.frame("Class" = m_class, "HP" = m_hp, "Str" = m_str, "Mag" = m_mag,
+                  "Skill" = m_skill, "Spd" = m_spd, "Luck" = m_lck, 
+                  "Def" = m_def, "Res" = m_res, stringsAsFactors = FALSE)
+
+```
+
+
+There is an asterisk on some characters, as you may notice. As indicated on the website, this indicates that these are unused in the game. This means that, for our interest, we can remove these rows:
+
+
+```{r}
+# removes asterisked-rows from data table
+max <- max[-c(24, 34, 38, 46, 53), ]
+max
+```
+
+Here are some final adjustments to the max data set in order to make things simpler for the creation of the app:
+
+```{r}
+# takes out the "Hero" half of the class (because Hero is an unused class for
+#usable characters)
+max[max$Class == "Lord / Hero", ]$Class <- "Lord"
+
+# because there is only one physical non-promoted unit that you use, we change
+# this to the name of that unit's class
+max[max$Class == "Non-promoted physical", ]$Class <- "Thief"
+```
+
+
+## Saving wrangled Data
+
+So now we have tables of the data for the growth rates, the base stats, the promotion bonuses, and the maximum stats for each character and class. Save each as a .csv file:
+
+```{r}
+# creates .csv files for the data tables that we have made
+write.csv(prom, file = "./data/fe9_promotions.csv")
+write.csv(base, file = "./data/fe9_base.csv")
+write.csv(growth, file = "./data/fe9_growth.csv")
+write.csv(max, file = "./data/fe9_max.csv")
+```
+
+## Conclusion
+
+With these data, you have different possibilities that you can do with them. Web scraping is an important skill to have if you want to be able to use data in your work. The more effort you put into wrangling your data, the easier it makes the computational aspect of your work/research.
+
+## Resources
+
+http://selectorgadget.com/
+
+https://serenesforest.net/path-of-radiance/characters/base-stats/
+
+https://serenesforest.net/path-of-radiance/characters/growth-rates/
+
+https://serenesforest.net/path-of-radiance/classes/maximum-stats/
+
+https://serenesforest.net/path-of-radiance/classes/promotion-gains/
+
+https://stackoverflow.com/questions/2288485/how-to-convert-a-data-frame-column-to-numeric-type
+
+https://stackoverflow.com/questions/2667673/select-first-4-rows-of-a-data-frame-in-r
+
+https://stackoverflow.com/questions/13774773/check-whether-value-exist-in-one-data-frame-or-not
