@@ -1,6 +1,6 @@
 # Fire Emblem: Path of Radiance Stats App
 
-This web-app is intended for the user to be perform a selection of actions with the character statistics avaiable in the game, _Fire Emblem: Path of Radiance_, available on [serenesforest.net](serenesforest.net).
+This web-app is intended for the user to be perform a selection of actions with the character statistics avaiable in the game, _Fire Emblem: Path of Radiance_, available on [https://serenesforest.net](https://serenesforest.net).
 
 These actions include:
 
